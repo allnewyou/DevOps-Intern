@@ -1,0 +1,16 @@
+- name: Install fail2ban
+  apt:
+    name: fail2ban
+    state: present
+
+- name: Configure fail2ban
+  copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 3
+      findtime = 60
+      bantime = 3600
+  notify: Restart fail2ban
+

@@ -1,0 +1,62 @@
+- name: Install PostgreSQL
+  apt:
+    name: postgresql
+    state: present
+
+- name: Create databases
+  become: yes
+  become_user: postgres
+  vars:
+    ansible_remote_tmp: /var/lib/postgresql/.ansible/tmp
+  postgresql_db:
+    name: "{{ item }}"
+    login_user: postgres
+    login_password: "fylhtq2005"
+    login_host: localhost
+    login_port: 5432
+  loop:
+    - app
+    - custom
+
+- name: Create users and grant privileges
+  community.postgresql.postgresql_query:
+    login_user: postgres
+    login_password: "fylhtq2005"
+    login_host: localhost
+    login_port: 5432
+    query: |
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{{ item.name }}') THEN
+          CREATE ROLE "{{ item.name }}" WITH LOGIN PASSWORD '{{ item.password }}';
+        END IF;
+        GRANT ALL PRIVILEGES ON DATABASE "{{ item.db }}" TO "{{ item.name }}";
+      END $$;
+  loop:
+    - { name: app, password: app, db: app }
+    - { name: custom, password: custom, db: custom }
+    - { name: service, password: service, db: app }
+    - { name: service, password: service, db: custom }
+
+- name: Grant SELECT privileges to service user
+  community.postgresql.postgresql_query:
+    login_user: postgres
+    login_password: "fylhtq2005"
+    login_host: localhost
+    login_port: 5432
+    query: |
+      GRANT SELECT ON ALL TABLES IN SCHEMA public TO "service";
+  when: item.name == "service"
+  loop:
+    - { name: service }
+
+- name: Configure PostgreSQL access
+  copy:
+    src: files/pg_hba.conf
+    dest: /etc/postgresql/16/main/pg_hba.conf
+  notify: Restart PostgreSQL
+
+- name: Restart PostgreSQL
+  service:
+    name: postgresql
+    state: restarted

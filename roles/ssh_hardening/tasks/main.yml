@@ -1,0 +1,31 @@
+- name: Disable SSH password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication no'
+    state: present
+  notify: Restart SSH
+
+- name: Ensure DevOps user exists
+  user:
+    name: DevOps
+    state: present
+    groups: sudo
+    append: yes
+
+- name: Add SSH key for DevOps
+  authorized_key:
+    user: DevOps
+    state: present
+    key: "{{ lookup('file', 'files/id_rsa.pub') }}"
+
+- name: Allow DevOps to use sudo without password
+  lineinfile:
+    path: /etc/sudoers
+    line: 'DevOps ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+
+- name: Restart SSH
+  service:
+    name: sshd
+    state: restarted

@@ -1,0 +1,5 @@
+[hostA]
+192.168.0.109 ansible_user=root ansible_become=yes
+
+[hostB]
+192.168.0.114 ansible_user=root ansible_become=yes

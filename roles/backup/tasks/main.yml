@@ -1,0 +1,22 @@
+- name: Install cron and pg_dump
+  apt:
+    name:
+      - cron
+      - postgresql-client
+    state: present
+
+- name: Create backup script
+  copy:
+    dest: /usr/local/bin/backup.sh
+    content: |
+      #!/bin/bash
+      pg_dump -U postgres -h 192.168.0.109 -d app > /backup/app.sql
+      pg_dump -U postgres -h 192.168.0.109 -d custom > /backup/custom.sql
+    mode: '0755'
+
+- name: Schedule backup
+  cron:
+    name: "PostgreSQL backup"
+    job: "/usr/local/bin/backup.sh"
+    minute: "0"
+    hour: "2"
